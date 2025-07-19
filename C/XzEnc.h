@@ -31,6 +31,7 @@ typedef struct
   CLzma2EncProps lzma2Props;
   CXzFilterProps filterProps;
   unsigned checkId;
+  unsigned numThreadGroups; // 0 : no groups
   UInt64 blockSize;
   int numBlockThreads_Reduced;
   int numBlockThreads_Max;

@@ -1,3 +1,4 @@
+// FIXME: merge this file
 // Lzma2Encoder.cpp
 
 #include "StdAfx.h"

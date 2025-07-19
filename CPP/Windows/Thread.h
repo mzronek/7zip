@@ -22,6 +22,8 @@ public:
   WRes Wait() { return Thread_Wait(&thread); }
   
   #ifdef _WIN32
+  WRes Create_With_Group(THREAD_FUNC_TYPE startAddress, LPVOID param, unsigned group, CAffinityMask affinity = 0)
+  { return Thread_Create_With_Group(&thread, startAddress, param, group, affinity); }
   operator HANDLE() { return thread; }
   void Attach(HANDLE handle) { thread = handle; }
   HANDLE Detach() { HANDLE h = thread; thread = NULL; return h; }

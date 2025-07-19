@@ -1,3 +1,4 @@
+// FIXME: merge this file
 // MethodProps.h
 
 #ifndef __7Z_METHOD_PROPS_H

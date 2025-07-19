@@ -500,6 +500,10 @@ SRes LzmaEnc_SetProps(CLzmaEncHandle pp, const CLzmaEncProps *props2)
   }
   */
   p->multiThread = (props.numThreads > 1);
+  p->matchFinderMt.btSync.affinityGroup =
+  p->matchFinderMt.hashSync.affinityGroup = props.affinityGroup;
+  p->matchFinderMt.btSync.affinityInGroup =
+  p->matchFinderMt.hashSync.affinityInGroup = props.affinityInGroup;
   #endif
 
   return SZ_OK;

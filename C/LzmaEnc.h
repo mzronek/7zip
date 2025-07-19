@@ -29,6 +29,9 @@ typedef struct _CLzmaEncProps
 
   UInt64 reduceSize; /* estimated size of data that will be compressed. default = (UInt64)(Int64)-1.
                         Encoder uses this value to reduce dictionary size */
+
+  UInt64 affinity;
+  UInt64 affinityInGroup;
 } CLzmaEncProps;
 
 void LzmaEncProps_Init(CLzmaEncProps *p);

@@ -47,14 +47,27 @@ static WRes ArEvent_OptCreate_And_Reset(CEvent *p)
 static THREAD_FUNC_RET_TYPE THREAD_FUNC_CALL_TYPE ThreadFunc(void *pp);
 
 
-static SRes MtCoderThread_CreateAndStart(CMtCoderThread *t)
+static SRes MtCoderThread_CreateAndStart(CMtCoderThread *t
+  #ifdef _WIN32
+    , CMtCoder * const mtc
+#endif
+    )
 {
   WRes wres = ArEvent_OptCreate_And_Reset(&t->startEvent);
   if (wres == 0)
   {
     t->stop = False;
     if (!Thread_WasCreated(&t->thread))
+  {
+#ifdef _WIN32
+      if (mtc->numThreadGroups)
+        wres = Thread_Create_With_Group(&t->thread, ThreadFunc, t,
+            ThreadNextGroup_GetNext(&mtc->nextGroup), // group
+            0); // affinityMask
+      else
+#endif
       wres = Thread_Create(&t->thread, ThreadFunc, t);
+    }
     if (wres == 0)
       wres = Event_Set(&t->startEvent);
   }
@@ -212,7 +225,11 @@ static SRes ThreadFunc2(CMtCoderThread *t)
       if (mtc->numStartedThreads < mtc->numStartedThreadsLimit
           && mtc->expectedDataSize != readProcessed)
       {
-        res = MtCoderThread_CreateAndStart(&mtc->threads[mtc->numStartedThreads]);
+        res = MtCoderThread_CreateAndStart(&mtc->threads[mtc->numStartedThreads]
+#ifdef _WIN32
+            , mtc
+#endif
+            );
         if (res == SZ_OK)
           mtc->numStartedThreads++;
         else
@@ -373,6 +390,7 @@ void MtCoder_Construct(CMtCoder *p)
   
   p->blockSize = 0;
   p->numThreadsMax = 0;
+  p->numThreadGroups = 0;
   p->expectedDataSize = (UInt64)(Int64)-1;
 
   p->inStream = NULL;
@@ -524,11 +542,22 @@ SRes MtCoder_Code(CMtCoder *p)
 
   p->numStartedThreadsLimit = numThreads;
   p->numStartedThreads = 0;
+  ThreadNextGroup_Init(&p->nextGroup, p->numThreadGroups, 0); // startGroup
 
   // for (i = 0; i < numThreads; i++)
   {
+    // here we create new thread for first block.
+    // And each new thread will create another new thread after block reading
+    // until numStartedThreadsLimit is reached.
     CMtCoderThread *nextThread = &p->threads[p->numStartedThreads++];
-    RINOK(MtCoderThread_CreateAndStart(nextThread));
+    {
+      const SRes res2 = MtCoderThread_CreateAndStart(nextThread
+#ifdef _WIN32
+            , p
+#endif
+            );
+      RINOK(res2)
+    }
   }
 
   RINOK_THREAD(Event_Set(&p->readEvent))

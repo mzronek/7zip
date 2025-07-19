@@ -53,6 +53,7 @@ struct CCompressionMethodMode
 
   #ifndef _7ZIP_ST
   UInt32 NumThreads;
+  UInt32 NumThreadGroups;
   bool MultiThreadMixer;
   #endif
   
@@ -66,6 +67,7 @@ struct CCompressionMethodMode
       PasswordIsDefined(false)
       #ifndef _7ZIP_ST
       , NumThreads(1)
+      , NumThreadGroups(0)
       , MultiThreadMixer(true)
       #endif
   {}

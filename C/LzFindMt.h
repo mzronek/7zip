@@ -34,6 +34,10 @@ typedef struct _CMtSync
   BoolInt csWasEntered;
   CCriticalSection cs;
   UInt32 numProcessedBlocks;
+
+  Int32 affinityGroup;
+  UInt64 affinityInGroup;
+  UInt64 affinity;
 } CMtSync;
 
 typedef UInt32 * (*Mf_Mix_Matches)(void *p, UInt32 matchMinPos, UInt32 *distances);

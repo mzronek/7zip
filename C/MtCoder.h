@@ -16,7 +16,7 @@ EXTERN_C_BEGIN
 
 #ifndef _7ZIP_ST
   #define MTCODER__GET_NUM_BLOCKS_FROM_THREADS(numThreads) ((numThreads) + (numThreads) / 8 + 1)
-  #define MTCODER__THREADS_MAX 64
+  #define MTCODER__THREADS_MAX 256
   #define MTCODER__BLOCKS_MAX (MTCODER__GET_NUM_BLOCKS_FROM_THREADS(MTCODER__THREADS_MAX) + 3)
 #else
   #define MTCODER__THREADS_MAX 1
@@ -77,6 +77,7 @@ typedef struct _CMtCoder
   
   size_t blockSize;        /* size of input block */
   unsigned numThreadsMax;
+  unsigned numThreadGroups;
   UInt64 expectedDataSize;
 
   ISeqInStream *inStream;
@@ -125,6 +126,8 @@ typedef struct _CMtCoder
   CMtProgress mtProgress;
   CMtCoderBlock blocks[MTCODER__BLOCKS_MAX];
   CMtCoderThread threads[MTCODER__THREADS_MAX];
+
+  CThreadNextGroup nextGroup;
 } CMtCoder;
 
 

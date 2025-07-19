@@ -473,6 +473,7 @@ void XzFilterProps_Init(CXzFilterProps *p)
 void XzProps_Init(CXzProps *p)
 {
   p->checkId = XZ_CHECK_CRC32;
+  p->numThreadGroups = 0;
   p->blockSize = XZ_PROPS__BLOCK_SIZE__AUTO;
   p->numBlockThreads_Reduced = -1;
   p->numBlockThreads_Max = -1;
@@ -1197,6 +1198,7 @@ SRes XzEnc_Encode(CXzEncHandle pp, ISeqOutStream *outStream, ISeqInStream *inStr
     }
 
     p->mtCoder.numThreadsMax = props->numBlockThreads_Max;
+    p->mtCoder.numThreadGroups = props->numThreadGroups;
     p->mtCoder.expectedDataSize = p->expectedDataSize;
     
     RINOK(MtCoder_Code(&p->mtCoder));

@@ -33,6 +33,26 @@ typedef
 #define THREAD_FUNC_DECL THREAD_FUNC_RET_TYPE THREAD_FUNC_CALL_TYPE
 typedef THREAD_FUNC_RET_TYPE (THREAD_FUNC_CALL_TYPE * THREAD_FUNC_TYPE)(void *);
 WRes Thread_Create(CThread *p, THREAD_FUNC_TYPE func, LPVOID param);
+WRes Thread_Create_With_Affinity(CThread *p, THREAD_FUNC_TYPE func, LPVOID param, CAffinityMask affinity);
+WRes Thread_Wait_Close(CThread *p);
+
+#ifdef _WIN32
+WRes Thread_Create_With_Group(CThread *p, THREAD_FUNC_TYPE func, LPVOID param, unsigned group, CAffinityMask affinityMask);
+#define Thread_Create_With_CpuSet(p, func, param, cs) \
+  Thread_Create_With_Affinity(p, func, param, *cs)
+#else
+WRes Thread_Create_With_CpuSet(CThread *p, THREAD_FUNC_TYPE func, LPVOID param, const CCpuSet *cpuSet);
+#endif
+
+typedef struct
+{
+  unsigned NumGroups;
+  unsigned NextGroup;
+} CThreadNextGroup;
+
+void ThreadNextGroup_Init(CThreadNextGroup *p, unsigned numGroups, unsigned startGroup);
+unsigned ThreadNextGroup_GetNext(CThreadNextGroup *p);
+
 
 typedef HANDLE CEvent;
 typedef CEvent CAutoResetEvent;

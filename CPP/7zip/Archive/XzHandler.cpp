@@ -1,3 +1,4 @@
+// FIXME: merge this file
 // XzHandler.cpp
 
 #include "StdAfx.h"

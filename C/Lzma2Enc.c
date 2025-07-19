@@ -235,6 +235,7 @@ void Lzma2EncProps_Init(CLzma2EncProps *p)
   p->numBlockThreads_Reduced = -1;
   p->numBlockThreads_Max = -1;
   p->numTotalThreads = -1;
+  p->numThreadGroups = 0;
 }
 
 void Lzma2EncProps_Normalize(CLzma2EncProps *p)
