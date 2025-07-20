@@ -1,4 +1,3 @@
-// FIXME: merge this file
 // MethodProps.h
 
 #ifndef __7Z_METHOD_PROPS_H
@@ -13,12 +12,31 @@
 
 #include "../ICoder.h"
 
+inline UInt64 Calc_From_Val_Percents_Less100(UInt64 val, UInt64 percents)
+{
+  if (percents == 0)
+    return 0;
+  if (val <= (UInt64)(Int64)-1 / percents)
+    return val * percents / 100;
+  return val / 100 * percents;
+}
+
+UInt64 Calc_From_Val_Percents(UInt64 val, UInt64 percents);
+
 bool StringToBool(const wchar_t *s, bool &res);
 HRESULT PROPVARIANT_to_bool(const PROPVARIANT &prop, bool &dest);
 unsigned ParseStringToUInt32(const UString &srcString, UInt32 &number);
 HRESULT ParsePropToUInt32(const UString &name, const PROPVARIANT &prop, UInt32 &resValue);
+/* input: (numThreads = the_number_of_processors) */
+HRESULT ParseMtProp2(const UString &name, const PROPVARIANT &prop, UInt32 &numThreads, bool &force);
 
-HRESULT ParseMtProp(const UString &name, const PROPVARIANT &prop, UInt32 defaultNumThreads, UInt32 &numThreads);
+inline HRESULT ParseMtProp(const UString &name, const PROPVARIANT &prop, UInt32 numCPUs, UInt32 &numThreads)
+{
+  bool forced = false;
+  numThreads = numCPUs;
+  return ParseMtProp2(name, prop, numThreads, forced);
+}
+
 
 struct CProp
 {
@@ -54,7 +72,12 @@ struct CProps
     prop.Value = s;
   }
 
-  HRESULT SetCoderProps(ICompressSetCoderProperties *scp, const UInt64 *dataSizeReduce) const;
+  HRESULT SetCoderProps(ICompressSetCoderProperties *scp, const UInt64 *dataSizeReduce = NULL) const;
+  HRESULT SetCoderProps_DSReduce_Aff(ICompressSetCoderProperties *scp,
+      const UInt64 *dataSizeReduce,
+      const UInt64 *affinity,
+      const UInt32 *affinityGroup,
+      const UInt64 *affinityInGroup) const;
 };
 
 class CMethodProps: public CProps
@@ -135,6 +158,21 @@ public:
     return 2;
   }
 
+  UInt64 Get_Lzma_MemUsage(bool addSlidingWindowSize) const;
+
+  bool Get_Lzma_MatchFinder_IsBt() const
+  {
+    const int i = FindProp(NCoderPropID::kMatchFinder);
+    if (i >= 0)
+    {
+      const NWindows::NCOM::CPropVariant &val = Props[(unsigned)i].Value;
+      if (val.vt == VT_BSTR)
+        return ((val.bstrVal[0] | 0x20) != 'h'); // check for "hc"
+    }
+    return GetLevel() >= 5;
+  }
+
+  /* returns -1, if numThreads is unknown */
   int Get_Xz_NumThreads(UInt32 &lzmaThreads) const
   {
     lzmaThreads = 1;
@@ -239,6 +277,17 @@ public:
   {
     if (FindProp(NCoderPropID::kEndMarker) < 0)
       AddPropBool(NCoderPropID::kEndMarker, eos);
+  }
+
+    void AddProp_BlockSize2(UInt64 blockSize2)
+  {
+    if (FindProp(NCoderPropID::kBlockSize2) < 0)
+    {
+      CProp &prop = Props.AddNew();
+      prop.IsOptional = true;
+      prop.Id = NCoderPropID::kBlockSize2;
+      prop.Value = blockSize2;
+    }
   }
 
   HRESULT ParseParamsFromString(const UString &srcString);

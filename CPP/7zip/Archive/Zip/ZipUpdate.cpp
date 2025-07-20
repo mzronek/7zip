@@ -1,4 +1,4 @@
-// FIXME: merge this file
+// TODO: merge this file
 // ZipUpdate.cpp
 
 #include "StdAfx.h"

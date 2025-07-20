@@ -25,7 +25,6 @@ static void MtSync_Construct(CMtSync *p)
 
 static void MtSync_GetNextBlock(CMtSync *p)
 {
-  UInt32 numBlocks = 0;
   if (p->needStart)
   {
     p->numProcessedBlocks = 1;
@@ -107,6 +106,8 @@ static void MtSync_Destruct(CMtSync *p)
 
 static SRes MtSync_Create2(CMtSync *p, THREAD_FUNC_TYPE startAddress, void *obj, UInt32 numBlocks)
 {
+  WRes wres;
+
   if (p->wasCreated)
     return SZ_OK;
 

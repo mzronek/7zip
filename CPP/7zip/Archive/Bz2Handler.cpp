@@ -1,4 +1,4 @@
-// FIXME: merge this file
+// TODO: merge this file
 // Bz2Handler.cpp
 
 #include "StdAfx.h"

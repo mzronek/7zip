@@ -30,6 +30,15 @@ typedef
   THREAD_FUNC_RET_TYPE;
 
 #define THREAD_FUNC_CALL_TYPE MY_STD_CALL
+
+#define THREAD_FUNC_RET_ZERO  0
+
+typedef DWORD_PTR CAffinityMask;
+typedef DWORD_PTR CCpuSet;
+
+#define CpuSet_Zero(p)        *(p) = (0)
+#define CpuSet_Set(p, cpu)    *(p) |= ((DWORD_PTR)1 << (cpu))
+
 #define THREAD_FUNC_DECL THREAD_FUNC_RET_TYPE THREAD_FUNC_CALL_TYPE
 typedef THREAD_FUNC_RET_TYPE (THREAD_FUNC_CALL_TYPE * THREAD_FUNC_TYPE)(void *);
 WRes Thread_Create(CThread *p, THREAD_FUNC_TYPE func, LPVOID param);

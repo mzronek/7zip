@@ -134,31 +134,6 @@ void RegisterArc(const CArcInfo *arcInfo) throw()
   }
 }
 
-static void SplitString(const UString &srcString, UStringVector &destStrings)
-{
-  destStrings.Clear();
-  UString s;
-  unsigned len = srcString.Len();
-  if (len == 0)
-    return;
-  for (unsigned i = 0; i < len; i++)
-  {
-    wchar_t c = srcString[i];
-    if (c == L' ')
-    {
-      if (!s.IsEmpty())
-      {
-        destStrings.Add(s);
-        s.Empty();
-      }
-    }
-    else
-      s += c;
-  }
-  if (!s.IsEmpty())
-    destStrings.Add(s);
-}
-
 int CArcInfoEx::FindExtension(const UString &ext) const
 {
   FOR_VECTOR (i, Exts)
