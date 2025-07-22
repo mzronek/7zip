@@ -359,11 +359,15 @@ public:
   void Add_OptSpaced(const char *s);
   void Add_LF();
   void Add_PathSepar() { operator+=(CHAR_PATH_SEPARATOR); }
+  void Add_Char(char c);
+  void Add_Dot();
+  void Add_Minus();
 
   AString &operator+=(const char *s);
   AString &operator+=(const AString &s);
 
   void Add_UInt32(UInt32 v);
+  void Add_UInt64(UInt64 v);
 
   void SetFrom(const char *s, unsigned len); // no check
   void SetFrom_CalcLen(const char *s, unsigned len);
@@ -600,6 +604,9 @@ public:
   void Add_Space_if_NotEmpty();
   void Add_LF();
   void Add_PathSepar() { operator+=(WCHAR_PATH_SEPARATOR); }
+  void Add_Char(char c);
+  void Add_Dot();
+  void Add_Minus();
 
   UString &operator+=(const wchar_t *s);
   UString &operator+=(const UString &s);
@@ -607,6 +614,7 @@ public:
   UString &operator+=(const AString &s) { return operator+=(s.Ptr()); }
 
   void Add_UInt32(UInt32 v);
+  void Add_UInt64(UInt64 v);
 
   UString Mid(unsigned startIndex, unsigned count) const { return UString(count, _chars + startIndex); }
   UString Left(unsigned count) const { return UString(count, *this); }
@@ -864,5 +872,7 @@ typedef CObjectVector<CSysString> CSysStringVector;
 typedef const FChar *CFSTR;
 
 typedef CObjectVector<FString> FStringVector;
+
+void SplitString(const UString &srcString, UStringVector &destStrings);
 
 #endif

@@ -606,6 +606,10 @@ void AString::SetFromBstr_if_Ascii(BSTR s)
 void AString::Add_Space() { operator+=(' '); }
 void AString::Add_Space_if_NotEmpty() { if (!IsEmpty()) Add_Space(); }
 void AString::Add_LF() { operator+=('\n'); }
+void AString::Add_Char(char c) { operator+=(c); }
+void AString::Add_Dot() { operator+=('.'); }
+void AString::Add_Minus() { operator+=('-'); }
+
 
 AString &AString::operator+=(const char *s)
 {
@@ -635,6 +639,12 @@ void AString::Add_UInt32(UInt32 v)
   char sz[16];
   ConvertUInt32ToString(v, sz);
   (*this) += sz;
+}
+
+void AString::Add_UInt64(UInt64 v)
+{
+  Grow(20);
+  _len = (unsigned)(ConvertUInt64ToString(v, _chars + _len) - _chars);
 }
 
 void AString::SetFrom(const char *s, unsigned len) // no check
@@ -1197,6 +1207,10 @@ void UString::Add_LF()
   _len = len;
 }
 
+void UString::Add_Char(char c) { operator+=((wchar_t)(unsigned char)c); }
+void UString::Add_Dot() { operator+=(L'.'); }
+void UString::Add_Minus() { operator+=(L'-'); }
+
 UString &UString::operator+=(const wchar_t *s)
 {
   unsigned len = MyStringLen(s);
@@ -1234,6 +1248,11 @@ void UString::Add_UInt32(UInt32 v)
   (*this) += sz;
 }
 
+void UString::Add_UInt64(UInt64 v)
+{
+  Grow(20);
+  _len = (unsigned)(ConvertUInt64ToString(v, _chars + _len) - _chars);
+}
 
 int UString::Find(const wchar_t *s, unsigned startIndex) const throw()
 {
@@ -1657,3 +1676,28 @@ FString us2fs(const wchar_t *s)
 }
 
 #endif
+
+void SplitString(const UString &srcString, UStringVector &destStrings)
+{
+  destStrings.Clear();
+  unsigned len = srcString.Len();
+  if (len == 0)
+    return;
+  UString s;
+  for (unsigned i = 0; i < len; i++)
+  {
+    const wchar_t c = srcString[i];
+    if (c == ' ')
+    {
+      if (!s.IsEmpty())
+      {
+        destStrings.Add(s);
+        s.Empty();
+      }
+    }
+    else
+      s += c;
+  }
+  if (!s.IsEmpty())
+    destStrings.Add(s);
+}

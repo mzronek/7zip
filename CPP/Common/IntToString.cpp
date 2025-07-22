@@ -7,25 +7,64 @@
 #include "IntToString.h"
 
 #define CONVERT_INT_TO_STR(charType, tempSize) \
-  unsigned char temp[tempSize]; unsigned i = 0; \
-  while (val >= 10) { temp[i++] = (unsigned char)('0' + (unsigned)(val % 10)); val /= 10; } \
-  *s++ = (charType)('0' + (unsigned)val); \
-  while (i != 0) { i--; *s++ = temp[i]; } \
-  *s = 0;
+  if (val < 10) \
+    *s++ = (charType)('0' + (unsigned)val); \
+  else { \
+    Byte temp[tempSize]; \
+    size_t i = 0; \
+    do { \
+      temp[++i] = (Byte)('0' + (unsigned)(val % 10)); \
+      val /= 10; } \
+    while (val >= 10); \
+    *s++ = (charType)('0' + (unsigned)val); \
+    do { *s++ = (charType)temp[i]; } \
+    while (--i); \
+  } \
+  *s = 0; \
+  return s;
 
-void ConvertUInt32ToString(UInt32 val, char *s) throw()
+char * ConvertUInt32ToString(UInt32 val, char *s) throw()
 {
-  CONVERT_INT_TO_STR(char, 16);
+  CONVERT_INT_TO_STR(char, 16)
 }
 
-void ConvertUInt64ToString(UInt64 val, char *s) throw()
+char * ConvertUInt64ToString(UInt64 val, char *s) throw()
 {
   if (val <= (UInt32)0xFFFFFFFF)
+    return ConvertUInt32ToString((UInt32)val, s);
+  CONVERT_INT_TO_STR(char, 24)
+}
+
+wchar_t * ConvertUInt32ToString(UInt32 val, wchar_t *s) throw()
+{
+  CONVERT_INT_TO_STR(wchar_t, 16)
+}
+
+wchar_t * ConvertUInt64ToString(UInt64 val, wchar_t *s) throw()
+{
+  if (val <= (UInt32)0xFFFFFFFF)
+    return ConvertUInt32ToString((UInt32)val, s);
+  CONVERT_INT_TO_STR(wchar_t, 24)
+}
+
+void ConvertInt64ToString(Int64 val, char *s) throw()
+{
+  if (val < 0)
   {
-    ConvertUInt32ToString((UInt32)val, s);
-    return;
+    *s++ = '-';
+    val = -val;
   }
-  CONVERT_INT_TO_STR(char, 24);
+  ConvertUInt64ToString((UInt64)val, s);
+}
+
+void ConvertInt64ToString(Int64 val, wchar_t *s) throw()
+{
+  if (val < 0)
+  {
+    *s++ = L'-';
+    val = -val;
+  }
+  ConvertUInt64ToString((UInt64)val, s);
 }
 
 void ConvertUInt64ToOct(UInt64 val, char *s) throw()
@@ -118,42 +157,6 @@ void ConvertUInt32ToHex8Digits(UInt32 val, wchar_t *s)
   }
 }
 */
-
-void ConvertUInt32ToString(UInt32 val, wchar_t *s) throw()
-{
-  CONVERT_INT_TO_STR(wchar_t, 16);
-}
-
-void ConvertUInt64ToString(UInt64 val, wchar_t *s) throw()
-{
-  if (val <= (UInt32)0xFFFFFFFF)
-  {
-    ConvertUInt32ToString((UInt32)val, s);
-    return;
-  }
-  CONVERT_INT_TO_STR(wchar_t, 24);
-}
-
-void ConvertInt64ToString(Int64 val, char *s) throw()
-{
-  if (val < 0)
-  {
-    *s++ = '-';
-    val = -val;
-  }
-  ConvertUInt64ToString(val, s);
-}
-
-void ConvertInt64ToString(Int64 val, wchar_t *s) throw()
-{
-  if (val < 0)
-  {
-    *s++ = L'-';
-    val = -val;
-  }
-  ConvertUInt64ToString(val, s);
-}
-
 
 static void ConvertByteToHex2Digits(unsigned v, char *s) throw()
 {

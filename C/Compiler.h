@@ -25,9 +25,23 @@
     #pragma warning(disable : 4786) // identifier was truncated to '255' characters in the debug information
   #endif
 
+  #if defined(_MSC_VER) && _MSC_VER > 1920
+    #define Z7_CAST_FUNC_C  (void *)
+    // #pragma warning(disable : 4191) // 'type cast': unsafe conversion from 'FARPROC' to 'void (__cdecl *)()'
+  #else
+    #define Z7_CAST_FUNC_C
+  #endif
 #endif
 
 #define UNUSED_VAR(x) (void)x;
 /* #define UNUSED_VAR(x) x=x; */
+
+#if defined(_WIN32) && defined(__clang__) && __clang_major__ >= 16
+// #pragma GCC diagnostic ignored "-Wcast-function-type-strict"
+#define Z7_DIAGNOSTIC_IGNORE_CAST_FUNCTION \
+  _Pragma("GCC diagnostic ignored \"-Wcast-function-type-strict\"")
+#else
+#define Z7_DIAGNOSTIC_IGNORE_CAST_FUNCTION
+#endif
 
 #endif

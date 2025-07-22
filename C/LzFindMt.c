@@ -9,6 +9,9 @@
 
 static void MtSync_Construct(CMtSync *p)
 {
+  p->affinityGroup = -1;
+  p->affinityInGroup = 0;
+  p->affinity = 0;
   p->wasCreated = False;
   p->csWasInitialized = False;
   p->csWasEntered = False;
@@ -103,6 +106,8 @@ static void MtSync_Destruct(CMtSync *p)
 
 static SRes MtSync_Create2(CMtSync *p, THREAD_FUNC_TYPE startAddress, void *obj, UInt32 numBlocks)
 {
+  WRes wres;
+
   if (p->wasCreated)
     return SZ_OK;
 
@@ -118,7 +123,18 @@ static SRes MtSync_Create2(CMtSync *p, THREAD_FUNC_TYPE startAddress, void *obj,
 
   p->needStart = True;
   
-  RINOK_THREAD(Thread_Create(&p->thread, startAddress, obj));
+#ifdef _WIN32
+  if (p->affinityGroup >= 0)
+    wres = Thread_Create_With_Group(&p->thread, startAddress, obj,
+        (unsigned)(UInt32)p->affinityGroup, (CAffinityMask)p->affinityInGroup);
+  else
+#endif
+  if (p->affinity != 0)
+    wres = Thread_Create_With_Affinity(&p->thread, startAddress, obj, (CAffinityMask)p->affinity);
+  else
+    wres = Thread_Create(&p->thread, startAddress, obj);
+
+  RINOK_THREAD(wres)
   p->wasCreated = True;
   return SZ_OK;
 }

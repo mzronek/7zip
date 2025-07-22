@@ -19,6 +19,7 @@ COMMON_OBJS = \
   $O\XzCrc64Reg.obj \
   $O\Sha1Reg.obj \
   $O\Sha256Reg.obj \
+  $O\Registry.obj \
 
 WIN_OBJS = \
   $O\DLL.obj \

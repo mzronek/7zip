@@ -69,12 +69,7 @@ HRESULT CHandler::SetHeaderMethod(CCompressionMethodMode &headerMethod)
   return PropsMethod_To_FullMethod(methodFull, m);
 }
 
-HRESULT CHandler::SetMainMethod(
-    CCompressionMethodMode &methodMode
-    #ifndef _7ZIP_ST
-    , UInt32 numThreads
-    #endif
-    )
+HRESULT CHandler::SetMainMethod(CCompressionMethodMode &methodMode)
 {
   methodMode.Bonds = _bonds;
 
@@ -120,9 +115,17 @@ HRESULT CHandler::SetMainMethod(
     COneMethodInfo &oneMethodInfo = methods[i];
 
     SetGlobalLevelTo(oneMethodInfo);
-    #ifndef _7ZIP_ST
-    CMultiMethodProps::SetMethodThreadsTo(oneMethodInfo, numThreads);
-    #endif
+
+#ifndef _7ZIP_ST
+    const bool numThreads_WasSpecifiedInMethod = (oneMethodInfo.Get_NumThreads() >= 0);
+    if (!numThreads_WasSpecifiedInMethod)
+    {
+      // here we set the (NCoderPropID::kNumThreads) property in each method, only if there is no such property already
+      CMultiMethodProps::SetMethodThreadsTo_IfNotFinded(oneMethodInfo, methodMode.NumThreads);
+    }
+    if (methodMode.NumThreadGroups > 1)
+      CMultiMethodProps::Set_Method_NumThreadGroups_IfNotFinded(oneMethodInfo, methodMode.NumThreadGroups);
+#endif
 
     CMethodFull &methodFull = methodMode.Methods.AddNew();
     RINOK(PropsMethod_To_FullMethod(methodFull, oneMethodInfo));
@@ -550,11 +553,7 @@ STDMETHODIMP CHandler::UpdateItems(ISequentialOutStream *outStream, UInt32 numIt
 
   CCompressionMethodMode methodMode, headerMethod;
 
-  HRESULT res = SetMainMethod(methodMode
-    #ifndef _7ZIP_ST
-    , _numThreads
-    #endif
-    );
+  HRESULT res = SetMainMethod(methodMode);
   RINOK(res);
 
   RINOK(SetHeaderMethod(headerMethod));

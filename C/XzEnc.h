@@ -10,7 +10,6 @@
 
 EXTERN_C_BEGIN
 
-
 #define XZ_PROPS__BLOCK_SIZE__AUTO   LZMA2_ENC_PROPS__BLOCK_SIZE__AUTO
 #define XZ_PROPS__BLOCK_SIZE__SOLID  LZMA2_ENC_PROPS__BLOCK_SIZE__SOLID
 
@@ -31,6 +30,7 @@ typedef struct
   CLzma2EncProps lzma2Props;
   CXzFilterProps filterProps;
   unsigned checkId;
+  unsigned numThreadGroups; // 0 : no groups
   UInt64 blockSize;
   int numBlockThreads_Reduced;
   int numBlockThreads_Max;

@@ -40,4 +40,35 @@ you can change this h file or h files included in this file.
   #define MY_ARRAY_NEW(p, T, size) p = new T[size];
 #endif
 
+#if defined(__clang__) || defined(__GNUC__)
+#define Z7_CAST_FUNC(t, e) reinterpret_cast<t>(reinterpret_cast<Z7_void_Function>(e))
+#else
+#define Z7_CAST_FUNC(t, e) reinterpret_cast<t>(reinterpret_cast<void*>(e))
+// #define Z7_CAST_FUNC(t, e) reinterpret_cast<t>(e)
+#endif
+
+#define Z7_GET_PROC_ADDRESS(func_type, hmodule, func_name)  \
+    Z7_CAST_FUNC(func_type, GetProcAddress(hmodule, func_name))
+
+#if defined (__cplusplus) && __cplusplus >= 201103L \
+    || (defined(_MSC_VER) && _MSC_VER >= 1800)
+  #define Z7_CPP_IS_SUPPORTED_default
+  #define Z7_eq_delete  = delete
+  // #define Z7_DECL_DEFAULT_COPY_CONSTRUCTOR_IF_SUPPORTED(c) c(const c& k) = default;
+#else
+  #define Z7_eq_delete
+  // #define Z7_DECL_DEFAULT_COPY_CONSTRUCTOR_IF_SUPPORTED(c)
+#endif
+
+#define Z7_CLASS_NO_COPY(cls) \
+  private: \
+  cls(const cls &) Z7_eq_delete; \
+  cls &operator=(const cls &) Z7_eq_delete;
+
+#if defined(_MSC_VER) && (_MSC_VER == 1200) && !defined(_WIN64)
+  #define Z7_ARRAY_NEW(p, T, size)  p = new T[((size) > 0xFFFFFFFFu / sizeof(T)) ? 0xFFFFFFFFu / sizeof(T) : (size)];
+#else
+  #define Z7_ARRAY_NEW(p, T, size)  p = new T[size];
+#endif
+
 #endif

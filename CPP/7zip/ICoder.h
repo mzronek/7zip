@@ -131,7 +131,11 @@ namespace NCoderPropID
     kBlockSize2,        // VT_UI4 or VT_UI8
     kCheckSize,         // VT_UI4 : size of digest in bytes
     kFilter,            // VT_BSTR
-    kMemUse             // VT_UI8
+    kMemUse,            // VT_UI8
+    kAffinity,          // VT_UI8
+    kNumThreadGroups,   // VT_UI4
+    kThreadGroup,       // VT_UI4
+    kAffinityInGroup,   // VT_UI8
   };
 }
 

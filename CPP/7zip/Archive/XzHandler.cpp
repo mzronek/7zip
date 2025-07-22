@@ -1,5 +1,4 @@
 // XzHandler.cpp
-
 #include "StdAfx.h"
 
 #include "../../../C/Alloc.h"
@@ -107,7 +106,7 @@ class CHandler:
     #ifndef _7ZIP_ST
     decoder._numThreads = _numThreads;
     #endif
-    decoder._memUsage = _memUsage;
+    decoder._memUsage = _memUsage_Decompress;
 
     MainDecodeSRes = SZ_OK;
 
@@ -1106,8 +1105,79 @@ STDMETHODIMP CHandler::UpdateItems(ISequentialOutStream *outStream, UInt32 numIt
     */
 
     #ifndef _7ZIP_ST
-    xzProps.numTotalThreads = _numThreads;
-    #endif
+
+#ifdef _WIN32
+    // we don't use chunk multithreading inside lzma2 stream.
+    // so we don't set xzProps.lzma2Props.numThreadGroups.
+    if (_numThreadGroups > 1)
+      xzProps.numThreadGroups = _numThreadGroups;
+#endif
+    
+    UInt32 numThreads = _numThreads;
+
+    const UInt32 kNumThreads_Max = 1024;
+    if (numThreads > kNumThreads_Max)
+      numThreads = kNumThreads_Max;
+
+    if (!_numThreads_WasForced
+        && _numThreads >= 1
+        && _memUsage_WasSet)
+    {
+      COneMethodInfo oneMethodInfo;
+      if (!_methods.IsEmpty())
+        oneMethodInfo = _methods[0];
+
+      SetGlobalLevelTo(oneMethodInfo);
+
+      const bool numThreads_WasSpecifiedInMethod = (oneMethodInfo.Get_NumThreads() >= 0);
+      if (!numThreads_WasSpecifiedInMethod)
+      {
+        // here we set the (NCoderPropID::kNumThreads) property in each method, only if there is no such property already
+        CMultiMethodProps::SetMethodThreadsTo_IfNotFinded(oneMethodInfo, numThreads);
+      }
+
+      // printf("\n====== GetProcessGroupAffinity : \n");
+
+      UInt64 cs = _numSolidBytes;
+      if (cs != XZ_PROPS__BLOCK_SIZE__AUTO)
+        oneMethodInfo.AddProp_BlockSize2(cs);
+      cs = oneMethodInfo.Get_Xz_BlockSize();
+
+      if (cs != XZ_PROPS__BLOCK_SIZE__AUTO &&
+          cs != XZ_PROPS__BLOCK_SIZE__SOLID)
+      {
+        const UInt32 lzmaThreads = oneMethodInfo.Get_Lzma_NumThreads();
+        const UInt32 numBlockThreads_Original = numThreads / lzmaThreads;
+
+        if (numBlockThreads_Original > 1)
+        {
+          UInt32 numBlockThreads = numBlockThreads_Original;
+          {
+            const UInt64 lzmaMemUsage = oneMethodInfo.Get_Lzma_MemUsage(false);
+            for (; numBlockThreads > 1; numBlockThreads--)
+            {
+              UInt64 innerSize = numBlockThreads * (lzmaMemUsage + cs);
+              UInt32 numPackChunks = numBlockThreads + (numBlockThreads / 8) + 1;
+              if (cs < ((UInt32)1 << 26)) numPackChunks++;
+              if (cs < ((UInt32)1 << 24)) numPackChunks++;
+              if (cs < ((UInt32)1 << 22)) numPackChunks++;
+              innerSize += numPackChunks * cs;
+              // printf("\nnumBlockThreads = %d, size = %d\n", (unsigned)(numBlockThreads), (unsigned)(size >> 20));
+              if (innerSize <= _memUsage_Compress)
+                break;
+            }
+          }
+          if (numBlockThreads == 0)
+            numBlockThreads = 1;
+          if (numBlockThreads != numBlockThreads_Original)
+            numThreads = numBlockThreads * lzmaThreads;
+        }
+      }
+    }
+    xzProps.numTotalThreads = (int)numThreads;
+
+    #endif // _7ZIP_ST
+
 
     xzProps.blockSize = _numSolidBytes;
     if (_numSolidBytes == XZ_PROPS__BLOCK_SIZE__SOLID)

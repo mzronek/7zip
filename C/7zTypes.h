@@ -42,6 +42,20 @@ EXTERN_C_BEGIN
 
 typedef int SRes;
 
+#ifdef _MSC_VER
+  #if _MSC_VER > 1200
+    #define MY_ALIGN(n) __declspec(align(n))
+  #else
+    #define MY_ALIGN(n)
+  #endif
+#else
+  /*
+  // C11/C++11:
+  #include <stdalign.h>
+  #define MY_ALIGN(n) alignas(n)
+  */
+  #define MY_ALIGN(n) __attribute__ ((aligned(n)))
+#endif
 
 #ifdef _WIN32
 
@@ -127,6 +141,17 @@ typedef int BoolInt;
 
 #define MY_CDECL __cdecl
 #define MY_FAST_CALL __fastcall
+
+#if _MSC_VER >= 1300
+#define Z7_NO_INLINE __declspec(noinline)
+#else
+#define Z7_NO_INLINE
+#endif
+
+#define Z7_FORCE_INLINE __forceinline
+
+#define Z7_CDECL      __cdecl
+#define Z7_FASTCALL  __fastcall
 
 #else
 
@@ -368,6 +393,10 @@ struct ISzAlloc
 #define STRING_PATH_SEPARATOR "/"
 #define WSTRING_PATH_SEPARATOR L"/"
 
+#endif
+
+#ifndef Z7_ARRAY_SIZE
+#define Z7_ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #endif
 
 EXTERN_C_END

@@ -25,4 +25,26 @@
 
 #define DECL_INTERFACE(i, groupId, subId) DECL_INTERFACE_SUB(i, IUnknown, groupId, subId)
 
+#ifdef COM_DECLSPEC_NOTHROW
+#define Z7_COMWF_B        COM_DECLSPEC_NOTHROW STDMETHODIMP
+#define Z7_COMWF_B_(t)    COM_DECLSPEC_NOTHROW STDMETHODIMP_(t)
+#else
+#define Z7_COMWF_B        STDMETHODIMP
+#define Z7_COMWF_B_(t)    STDMETHODIMP_(t)
+#endif
+
+#if defined(_MSC_VER) && !defined(COM_DECLSPEC_NOTHROW)
+#define Z7_COM7F_B        __declspec(nothrow) STDMETHODIMP
+#define Z7_COM7F_B_(t)    __declspec(nothrow) STDMETHODIMP_(t)
+#else
+#define Z7_COM7F_B        Z7_COMWF_B
+#define Z7_COM7F_B_(t)    Z7_COMWF_B_(t)
+#endif
+
+#define Z7_COM7F_E            throw()
+#define Z7_COM7F_EO           Z7_COM7F_E  Z7_override
+#define Z7_COM7F_EOF          Z7_COM7F_EO Z7_final
+#define Z7_COM7F_IMF(f)       Z7_COM7F_B     f Z7_COM7F_E
+#define Z7_COM7F_IMF2(t, f)   Z7_COM7F_B_(t) f Z7_COM7F_E
+
 #endif
