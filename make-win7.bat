@@ -1,6 +1,6 @@
 SET curDir=%cd%
 
-c:\cmsc\setenv.bat c:\WinDDK\7600.16385.1 x64
+CALL %curDir%\..\build\cmsc\setenv.bat %curDir%\..\build\WinDDK\7600.16385.1 x64
 
 cd %curDir%\CPP\7zip\Bundles\Alone
 

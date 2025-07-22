@@ -43,7 +43,6 @@
 #ifdef USE_WIN_FILE
 #include "../../../Windows/FileIO.h"
 #endif
-#include "../../../Windows/SystemInfo.h"
 
 #include "../../../Common/IntToString.h"
 #include "../../../Common/MyBuffer2.h"
@@ -2843,6 +2842,87 @@ static bool AreSameMethodNames(const char *fullName, const char *shortName)
   return StringsAreEqualNoCase_Ascii(fullName, shortName);
 }
 
+
+#ifdef MY_CPU_X86_OR_AMD64
+
+static void PrintCpuChars(AString &s, UInt32 v)
+{
+  for (int j = 0; j < 4; j++)
+  {
+    Byte b = (Byte)(v & 0xFF);
+    v >>= 8;
+    if (b == 0)
+      break;
+    s += (char)b;
+  }
+}
+
+static void x86cpuid_to_String(const Cx86cpuid &c, AString &s)
+{
+  s.Empty();
+
+  UInt32 maxFunc2 = 0;
+  UInt32 t[3];
+
+  MyCPUID(0x80000000, &maxFunc2, &t[0], &t[1], &t[2]);
+
+  bool fullNameIsAvail = (maxFunc2 >= 0x80000004);
+  
+  if (!fullNameIsAvail)
+  {
+    for (int i = 0; i < 3; i++)
+      PrintCpuChars(s, c.vendor[i]);
+  }
+  else
+  {
+    for (int i = 0; i < 3; i++)
+    {
+      UInt32 d[4] = { 0 };
+      MyCPUID(0x80000002 + i, &d[0], &d[1], &d[2], &d[3]);
+      for (int j = 0; j < 4; j++)
+        PrintCpuChars(s, d[j]);
+    }
+  }
+
+  s.Add_Space_if_NotEmpty();
+  {
+    char temp[32];
+    ConvertUInt32ToHex(c.ver, temp);
+    s += '(';
+    s += temp;
+    s += ')';
+  }
+}
+
+#endif
+
+
+
+static const char * const k_PROCESSOR_ARCHITECTURE[] =
+{
+    "x86" // "INTEL"
+  , "MIPS"
+  , "ALPHA"
+  , "PPC"
+  , "SHX"
+  , "ARM"
+  , "IA64"
+  , "ALPHA64"
+  , "MSIL"
+  , "x64" // "AMD64"
+  , "IA32_ON_WIN64"
+  , "NEUTRAL"
+  , "ARM64"
+  , "ARM32_ON_WIN64"
+};
+
+#define MY__PROCESSOR_ARCHITECTURE_INTEL 0
+#define MY__PROCESSOR_ARCHITECTURE_AMD64 9
+
+
+#define MY__PROCESSOR_INTEL_PENTIUM  586
+#define MY__PROCESSOR_AMD_X8664      8664
+
 /*
 static const CUInt32PCharPair k_PROCESSOR[] =
 {
@@ -2919,6 +2999,16 @@ static const char * const k_PF[] =
 
 #endif
 
+static void PrintPage(AString &s, UInt32 v)
+{
+  if ((v & 0x3FF) == 0)
+  {
+    s.Add_UInt32(v >> 10);
+    s += "K";
+  }
+  else
+    s.Add_UInt32(v >> 10);
+}
 
 static AString TypeToString2(const char * const table[], unsigned num, UInt32 value)
 {
@@ -2933,6 +3023,135 @@ static AString TypeToString2(const char * const table[], unsigned num, UInt32 va
   }
   return (AString)p;
 }
+
+
+#ifdef _WIN32
+
+static void SysInfo_To_String(AString &s, const SYSTEM_INFO &si)
+{
+  s += TypeToString2(k_PROCESSOR_ARCHITECTURE, ARRAY_SIZE(k_PROCESSOR_ARCHITECTURE), si.wProcessorArchitecture);
+
+  if (!(   si.wProcessorArchitecture == MY__PROCESSOR_ARCHITECTURE_INTEL && si.dwProcessorType == MY__PROCESSOR_INTEL_PENTIUM
+      || si.wProcessorArchitecture == MY__PROCESSOR_ARCHITECTURE_AMD64 && si.dwProcessorType == MY__PROCESSOR_AMD_X8664))
+  {
+    s += " ";
+    // s += TypePairToString(k_PROCESSOR, ARRAY_SIZE(k_PROCESSOR), si.dwProcessorType);
+    s.Add_UInt32(si.dwProcessorType);
+  }
+  s += " ";
+  PrintHex(s, si.wProcessorLevel);
+  s += ".";
+  PrintHex(s, si.wProcessorRevision);
+  if ((UInt64)si.dwActiveProcessorMask + 1 != ((UInt64)1 << si.dwNumberOfProcessors))
+  if ((UInt64)si.dwActiveProcessorMask + 1 != 0 || si.dwNumberOfProcessors != sizeof(UInt64) * 8)
+  {
+    s += " act:";
+    PrintHex(s, si.dwActiveProcessorMask);
+  }
+  s += " cpus:";
+  s.Add_UInt32(si.dwNumberOfProcessors);
+  if (si.dwPageSize != 1 << 12)
+  {
+    s += " page:";
+    PrintPage(s, si.dwPageSize);
+  }
+  if (si.dwAllocationGranularity != 1 << 16)
+  {
+    s += " gran:";
+    PrintPage(s, si.dwAllocationGranularity);
+  }
+  s += " ";
+
+  DWORD_PTR minAdd = (DWORD_PTR)si.lpMinimumApplicationAddress;
+  UInt64 maxSize = (UInt64)(DWORD_PTR)si.lpMaximumApplicationAddress + 1;
+  const UInt32 kReserveSize = ((UInt32)1 << 16);
+  if (minAdd != kReserveSize)
+  {
+    PrintSize(s, minAdd);
+    s += "-";
+  }
+  else
+  {
+    if ((maxSize & (kReserveSize - 1)) == 0)
+      maxSize += kReserveSize;
+  }
+  PrintSize(s, maxSize);
+}
+
+#ifndef _WIN64
+typedef VOID (WINAPI *Func_GetNativeSystemInfo)(LPSYSTEM_INFO lpSystemInfo);
+#endif
+
+#endif
+
+void GetSysInfo(AString &s1, AString &s2)
+{
+  s1.Empty();
+  s2.Empty();
+
+  #ifdef _WIN32
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+    {
+      SysInfo_To_String(s1, si);
+      // s += " : ";
+    }
+    
+    #if !defined(_WIN64) && !defined(UNDER_CE)
+    Func_GetNativeSystemInfo fn_GetNativeSystemInfo = (Func_GetNativeSystemInfo)GetProcAddress(
+        GetModuleHandleA("kernel32.dll"), "GetNativeSystemInfo");
+    if (fn_GetNativeSystemInfo)
+    {
+      SYSTEM_INFO si2;
+      fn_GetNativeSystemInfo(&si2);
+      // if (memcmp(&si, &si2, sizeof(si)) != 0)
+      {
+        // s += " - ";
+        SysInfo_To_String(s2, si2);
+      }
+    }
+    #endif
+  #endif
+}
+
+
+void GetCpuName(AString &s)
+{
+  s.Empty();
+
+  #ifdef MY_CPU_X86_OR_AMD64
+  {
+    Cx86cpuid cpuid;
+    if (x86cpuid_CheckAndRead(&cpuid))
+    {
+      AString s2;
+      x86cpuid_to_String(cpuid, s2);
+      s += s2;
+    }
+    else
+    {
+    #ifdef MY_CPU_AMD64
+    s += "x64";
+    #else
+    s += "x86";
+    #endif
+    }
+  }
+  #else
+  
+    #ifdef MY_CPU_LE
+      s += "LE";
+    #elif defined(MY_CPU_BE)
+      s += "BE";
+    #endif
+
+  #endif
+
+  #ifdef _7ZIP_LARGE_PAGES
+  Add_LargePages_String(s);
+  #endif
+}
+
 
 void GetCpuFeatures(AString &s)
 {
@@ -3185,7 +3404,8 @@ HRESULT Bench(
     }
     {
       AString s, reg;
-      GetCpuName_MultiLine(s, reg);
+      // FIXME: reintroduce cpu name detection
+      //GetCpuName_MultiLine(s, reg);
       if (!s.IsEmpty())
       {
         printCallback->Print(s);

@@ -1,4 +1,6 @@
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat
+CALL "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+
+echo "Building 7zip for x64 with dynamic linking:"
 
 SET curDir=%cd%
 

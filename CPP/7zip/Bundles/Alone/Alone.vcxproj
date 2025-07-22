@@ -208,7 +208,7 @@
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <StringPooling>true</StringPooling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <Optimization>MinSpace</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -221,6 +221,7 @@
       <ObjectFileName>.\Release\</ObjectFileName>
       <ProgramDataBaseFileName>.\Release\</ProgramDataBaseFileName>
       <CallingConvention>StdCall</CallingConvention>
+      <DebugInformationFormat>None</DebugInformationFormat>
     </ClCompile>
     <Midl>
       <TypeLibraryName>.\Release\Alone.tlb</TypeLibraryName>
@@ -374,6 +375,7 @@
       <ObjectFileName>.\ReleaseU\</ObjectFileName>
       <ProgramDataBaseFileName>.\ReleaseU\</ProgramDataBaseFileName>
       <CallingConvention>StdCall</CallingConvention>
+      <DebugInformationFormat>None</DebugInformationFormat>
     </ClCompile>
     <Midl>
       <TypeLibraryName>.\ReleaseU\Alone.tlb</TypeLibraryName>

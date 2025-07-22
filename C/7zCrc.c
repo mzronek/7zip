@@ -84,11 +84,10 @@ void MY_FAST_CALL CrcGenerateTable()
     #if CRC_NUM_TABLES >= 8
       g_CrcUpdateT8 = CrcUpdateT8;
   
-      // FIXME: reintroduce CPU_Is_InOrder() check
-      /*#ifdef MY_CPU_X86_OR_AMD64
+      #ifdef MY_CPU_X86_OR_AMD64
       if (!CPU_Is_InOrder())
       #endif
-        g_CrcUpdate = CrcUpdateT8;*/
+        g_CrcUpdate = CrcUpdateT8;
     #endif
 
   #else

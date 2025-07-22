@@ -9,21 +9,6 @@
 
 #include "LzmaEncoder.h"
 
-// #define LOG_LZMA_THREADS
-
-#ifdef LOG_LZMA_THREADS
-
-#include <stdio.h>
-
-#include "../../Common/IntToString.h"
-#include "../../Windows/TimeUtils.h"
-
-EXTERN_C_BEGIN
-void LzmaEnc_GetLzThreads(CLzmaEncHandle pp, HANDLE lz_threads[2]);
-EXTERN_C_END
-
-#endif
-
 namespace NCompress {
 namespace NLzma {
 
@@ -41,42 +26,42 @@ CEncoder::~CEncoder()
     LzmaEnc_Destroy(_encoder, &g_AlignedAlloc, &g_BigAlloc);
 }
 
-static inline wchar_t GetLowCharFast(wchar_t c)
+static inline wchar_t GetUpperChar(wchar_t c)
 {
-  return c |= 0x20;
+  if (c >= 'a' && c <= 'z')
+    c -= 0x20;
+  return c;
 }
 
 static int ParseMatchFinder(const wchar_t *s, int *btMode, int *numHashBytes)
 {
-  const wchar_t c = GetLowCharFast(*s++);
-  if (c == 'h')
+  wchar_t c = GetUpperChar(*s++);
+  if (c == L'H')
   {
-    if (GetLowCharFast(*s++) != 'c')
+    if (GetUpperChar(*s++) != L'C')
       return 0;
-    const int num = (int)(*s++ - L'0');
-    if (num < 4 || num > 5)
+    int numHashBytesLoc = (int)(*s++ - L'0');
+    if (numHashBytesLoc < 4 || numHashBytesLoc > 4)
       return 0;
     if (*s != 0)
       return 0;
     *btMode = 0;
-    *numHashBytes = num;
+    *numHashBytes = numHashBytesLoc;
     return 1;
   }
 
-  if (c != 'b')
+  if (c != L'B')
     return 0;
-  {
-    if (GetLowCharFast(*s++) != 't')
-      return 0;
-    const int num = (int)(*s++ - L'0');
-    if (num < 2 || num > 5)
-      return 0;
-    if (*s != 0)
-      return 0;
-    *btMode = 1;
-    *numHashBytes = num;
-    return 1;
-  }
+  if (GetUpperChar(*s++) != L'T')
+    return 0;
+  int numHashBytesLoc = (int)(*s++ - L'0');
+  if (numHashBytesLoc < 2 || numHashBytesLoc > 4)
+    return 0;
+  if (*s != 0)
+    return 0;
+  *btMode = 1;
+  *numHashBytes = numHashBytesLoc;
+  return 1;
 }
 
 #define SET_PROP_32(_id_, _dest_) case NCoderPropID::_id_: ep._dest_ = (int)v; break;
@@ -235,91 +220,6 @@ Z7_COM7F_IMF(CEncoder::WriteCoderProperties(ISequentialOutStream *outStream))
   if (wrapRes != S_OK /* && (sRes == SZ_OK || sRes == sResErrorCode) */) return wrapRes;
 
 
-
-#ifdef LOG_LZMA_THREADS
-
-static inline UInt64 GetTime64(const FILETIME &t) { return ((UInt64)t.dwHighDateTime << 32) | t.dwLowDateTime; }
-
-static void PrintNum(UInt64 val, unsigned numDigits, char c = ' ')
-{
-  char temp[64];
-  char *p = temp + 32;
-  ConvertUInt64ToString(val, p);
-  unsigned len = (unsigned)strlen(p);
-  for (; len < numDigits; len++)
-    *--p = c;
-  printf("%s", p);
-}
-
-static void PrintTime(const char *s, UInt64 val, UInt64 total)
-{
-  printf("  %s :", s);
-  const UInt32 kFreq = 10000000;
-  UInt64 sec = val / kFreq;
-  PrintNum(sec, 6);
-  printf(" .");
-  UInt32 ms = (UInt32)(val - (sec * kFreq)) / (kFreq / 1000);
-  PrintNum(ms, 3, '0');
-  
-  while (val > ((UInt64)1 << 56))
-  {
-    val >>= 1;
-    total >>= 1;
-  }
-
-  UInt64 percent = 0;
-  if (total != 0)
-    percent = val * 100 / total;
-  printf("  =");
-  PrintNum(percent, 4);
-  printf("%%");
-}
-
-
-struct CBaseStat
-{
-  UInt64 kernelTime, userTime;
-  
-  BOOL Get(HANDLE thread, const CBaseStat *prevStat)
-  {
-    FILETIME creationTimeFT, exitTimeFT, kernelTimeFT, userTimeFT;
-    BOOL res = GetThreadTimes(thread
-      , &creationTimeFT, &exitTimeFT, &kernelTimeFT, &userTimeFT);
-    if (res)
-    {
-      kernelTime = GetTime64(kernelTimeFT);
-      userTime = GetTime64(userTimeFT);
-      if (prevStat)
-      {
-        kernelTime -= prevStat->kernelTime;
-        userTime -= prevStat->userTime;
-      }
-    }
-    return res;
-  }
-};
-
-
-static void PrintStat(HANDLE thread, UInt64 totalTime, const CBaseStat *prevStat)
-{
-  CBaseStat newStat;
-  if (!newStat.Get(thread, prevStat))
-    return;
-
-  PrintTime("K", newStat.kernelTime, totalTime);
-
-  const UInt64 processTime = newStat.kernelTime + newStat.userTime;
-  
-  PrintTime("U", newStat.userTime, totalTime);
-  PrintTime("S", processTime, totalTime);
-  printf("\n");
-  // PrintTime("G ", totalTime, totalTime);
-}
-
-#endif
-
-
-
 Z7_COM7F_IMF(CEncoder::Code(ISequentialInStream *inStream, ISequentialOutStream *outStream,
     const UInt64 * /* inSize */, const UInt64 * /* outSize */, ICompressProgressInfo *progress))
 {
@@ -331,18 +231,7 @@ Z7_COM7F_IMF(CEncoder::Code(ISequentialInStream *inStream, ISequentialOutStream 
   outWrap.Init(outStream);
   progressWrap.Init(progress);
 
-  #ifdef LOG_LZMA_THREADS
-
-  FILETIME startTimeFT;
-  NWindows::NTime::GetCurUtcFileTime(startTimeFT);
-  UInt64 totalTime = GetTime64(startTimeFT);
-  CBaseStat oldStat;
-  if (!oldStat.Get(GetCurrentThread(), NULL))
-    return E_FAIL;
-  
-  #endif
-  
-  
+ 
   SRes res = LzmaEnc_Encode(_encoder, &outWrap.vt, &inWrap.vt,
       progress ? &progressWrap.vt : NULL, &g_AlignedAlloc, &g_BigAlloc);
 
@@ -353,21 +242,6 @@ Z7_COM7F_IMF(CEncoder::Code(ISequentialInStream *inStream, ISequentialOutStream 
   RET_IF_WRAP_ERROR(progressWrap.Res, res, SZ_ERROR_PROGRESS)
 
   
-  #ifdef LOG_LZMA_THREADS
-  
-  NWindows::NTime::GetCurUtcFileTime(startTimeFT);
-  totalTime = GetTime64(startTimeFT) - totalTime;
-  HANDLE lz_threads[2];
-  LzmaEnc_GetLzThreads(_encoder, lz_threads);
-  printf("\n");
-  printf("Main: ");  PrintStat(GetCurrentThread(), totalTime, &oldStat);
-  printf("Hash: ");  PrintStat(lz_threads[0], totalTime, NULL);
-  printf("BinT: ");  PrintStat(lz_threads[1], totalTime, NULL);
-  // PrintTime("Total: ", totalTime, totalTime);
-  printf("\n");
-
-  #endif
-
   return SResToHRESULT(res);
 }
 
